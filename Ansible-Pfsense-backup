@@ -1,0 +1,27 @@
+GNU nano 5.6.1                                          backup.yml                                                    ---
+name: Automação de Backup no Pfsense com Cron às 22:00
+hosts: servers
+gather_facts: yes
+become: no
+vars:
+  ansible_python_interpreter: /usr/local/bin/python3.8
+
+  tasks:
+    
+name: Criar diretório de backup
+    file:
+      path: /usr/local/backups/pfsense
+      state: directory
+      mode: '0755'
+
+    
+name: Backup da configuração do Pfsense
+    command: cp /cf/conf/config.xml /usr/local/backups/pfsense/config-backup-{{ ansible_date_time.date }}.xml
+
+    
+name: Configurar CRON para automação do backup às 22:00
+    cron:
+      name: "Backup diário do Pfsense"
+      minute: "05"
+      hour: "22"
+      job: "ansible-playbook /root/ansible/backup.yml"
