@@ -1,0 +1,53 @@
+---
+- name: Automação de Backup no Pfsense com Cron às 22:00
+  hosts: servers 
+  gather_facts: yes
+  become: no
+  vars:
+    ansible_python_interpreter: /usr/local/bin/python3.11
+    backup_dir: /usr/local/backups/pfsense
+    remote_user_backup: camara
+    remote_host: 192.168.128.236
+    remote_dir: /home/camara/backup-teste
+  
+  tasks:  
+    - name: Criar diretório de backup
+      file:
+        path: "{{ backup_dir }}"
+        state: directory
+        mode: '0755'
+    
+    - name: 
+      command: cp /cf/conf/config.xml {{ backup_dir }}/config-backup-{{ ansible_date_time.date }}.xml
+
+    - name: Transferir o arquivo de backup para o servidor remoto
+      ansible.builtin.fetch:
+        src: "{{ backup_dir }}/config-backup-{{ ansible_date_time.date }}.xml"
+        dest: "{{ remote_user_backup }}@{{ remote_host }}:{{ remote_dir }}"
+        mode: '0644'
+      register: scp_result
+      ignore_errors: yes
+
+
+#    - name: Transferir o arquivo de backup para o servidor remoto
+#      command: >
+#        scp {{ backup_dir }}/config-backup-{{ ansible_date_time.date }}.xml {{ remote_user_backup }}@{{ remote_host }}:{{ remote_dir }}
+#      register: scp_result
+#      ignore_errors: yes
+
+ #   - name: Verificar se a transferência foi bem-sucedida
+ #     debug:
+ #       msg: "Transferência bem-sucedida: {{ scp_result.stdout }}"
+ #     when: scp_result.rc == 0
+
+#    - name: Verificar se a transferência falhou
+ #     debug:
+ #       msg: "Erro na transferência: {{ scp_result.stderr }}"
+ #     when: scp_result.rc != 0
+    
+    - name: Configurar CRON para automação do backup às 
+      cron:
+        name: "Backup diário do Pfsense"
+        minute: "51"
+        hour: "15"
+        job: "ansible-playbook /home/leste/ansible/pfsense-backup.yml"
